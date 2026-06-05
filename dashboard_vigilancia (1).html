@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Dashboard Vigilancia Científica — UAO</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#F2F1EC;--surface:#fff;--surface2:#F7F6F2;
+  --border:rgba(0,0,0,.07);--border2:rgba(0,0,0,.13);
+  --text:#1A1A17;--text2:#5C5C54;--text3:#9C9C90;
+  --navy:#1A3A6B;--navy-l:#EBF0F9;
+  --green:#0F6E56;--green-l:#E1F5EE;
+  --font:'DM Sans',sans-serif;--mono:'DM Mono',monospace;
+  --r:12px;--rsm:8px;
+}
+body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;font-size:14px}
+
+.sb{position:fixed;top:0;left:0;width:218px;height:100vh;background:var(--navy);display:flex;flex-direction:column;z-index:100}
+.sb-logo{padding:22px 18px 18px;border-bottom:1px solid rgba(255,255,255,.09)}
+.sb-badge{width:34px;height:34px;background:rgba(255,255,255,.14);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;letter-spacing:.06em;margin-bottom:10px}
+.sb-title{font-size:13px;font-weight:600;color:#fff;line-height:1.3}
+.sb-sub{font-size:11px;color:rgba(255,255,255,.4);margin-top:2px}
+.sb-nav{padding:14px 10px;flex:1}
+.sb-sec{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:rgba(255,255,255,.3);font-weight:600;padding:0 8px;margin:14px 0 5px}
+.nb{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:7px;cursor:pointer;color:rgba(255,255,255,.55);font-size:13px;font-weight:400;transition:all .15s;border:none;background:transparent;width:100%;text-align:left;font-family:var(--font);text-decoration:none}
+.nb:hover{background:rgba(255,255,255,.07);color:rgba(255,255,255,.85)}
+.nb.active{background:rgba(255,255,255,.15);color:#fff;font-weight:500}
+.sb-foot{padding:12px 16px;border-top:1px solid rgba(255,255,255,.09);font-size:10px;color:rgba(255,255,255,.25);line-height:1.6}
+
+.main{margin-left:218px;min-height:100vh;display:flex;flex-direction:column}
+.topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:0 26px;height:54px;display:flex;align-items:center;gap:14px;position:sticky;top:0;z-index:50}
+.tb-info{flex:1}
+.tb-title{font-size:14px;font-weight:500;color:var(--text)}
+.tb-sub{font-size:11px;color:var(--text3);margin-top:1px}
+.tb-actions{display:flex;align-items:center;gap:8px}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:var(--rsm);font-family:var(--font);font-size:12px;font-weight:500;cursor:pointer;border:1px solid var(--border2);background:var(--surface);color:var(--text2);transition:all .15s;text-decoration:none;white-space:nowrap}
+.btn:hover{background:var(--bg);color:var(--text)}
+.btn-primary{background:var(--navy);color:#fff;border-color:var(--navy)}
+.btn-primary:hover{background:#142d56}
+
+.content{padding:24px 26px;flex:1}
+
+.status-bar{display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--surface);border:1px solid var(--border);border-radius:var(--rsm);margin-bottom:20px;font-size:12px;color:var(--text3)}
+.sdot{width:7px;height:7px;border-radius:50%;flex-shrink:0;background:#9C9C90}
+.sdot.ok{background:#1D9E75}
+.sdot.loading{background:#EF9F27;animation:pulse .8s ease-in-out infinite}
+.sdot.error{background:#E24B4A}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.status-time{margin-left:auto;font-family:var(--mono);font-size:11px}
+
+.vert-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:20px}
+.vtab{padding:6px 14px;border-radius:20px;font-size:12px;font-weight:500;cursor:pointer;border:1px solid var(--border2);background:var(--surface);color:var(--text2);transition:all .15s;display:flex;align-items:center;gap:6px}
+.vtab:hover{background:var(--bg)}
+.vtab.active{color:#fff;border-color:transparent}
+.vtab-dot{width:7px;height:7px;border-radius:50%}
+.vtab-cnt{font-size:10px;font-family:var(--mono);opacity:.7}
+
+.vert-panel{display:none}
+.vert-panel.active{display:block}
+
+.panel-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.panel-title{font-size:16px;font-weight:600;color:var(--text)}
+.panel-sub{font-size:12px;color:var(--text3);margin-top:2px}
+.panel-count{font-size:12px;color:var(--text3);font-family:var(--mono)}
+
+.files-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px}
+.file-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:18px 20px;display:flex;flex-direction:column;gap:12px;transition:border-color .15s}
+.file-card:hover{border-color:var(--border2)}
+.file-top{display:flex;align-items:flex-start;gap:12px}
+.file-ico{width:38px;height:38px;border-radius:8px;background:#FCEBEB;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.file-name{font-size:13px;font-weight:500;color:var(--text);line-height:1.4;word-break:break-word}
+.file-meta{font-size:11px;color:var(--text3);font-family:var(--mono);margin-top:3px}
+.file-actions{display:flex;gap:8px;padding-top:10px;border-top:1px solid var(--border)}
+
+.empty-state{padding:48px;text-align:center;color:var(--text3);background:var(--surface);border:1px solid var(--border);border-radius:var(--r)}
+.empty-icon{font-size:32px;margin-bottom:10px}
+.empty-title{font-size:14px;font-weight:500;color:var(--text2);margin-bottom:6px}
+.empty-sub{font-size:12px;line-height:1.6}
+
+.loading-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:18px 20px;animation:shimmer 1.5s ease-in-out infinite}
+@keyframes shimmer{0%,100%{opacity:1}50%{opacity:.5}}
+.skel{background:var(--surface2);border-radius:4px;height:12px;margin-bottom:8px}
+
+::-webkit-scrollbar{width:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+</style>
+</head>
+<body>
+
+<aside class="sb">
+  <div class="sb-logo">
+    <div class="sb-badge">UAO</div>
+    <div class="sb-title">Vigilancia Científica</div>
+    <div class="sb-sub">Sistema Multi-Agente · 2026</div>
+  </div>
+  <nav class="sb-nav">
+    <div class="sb-sec">Navegación</div>
+    <a class="nb" href="index.html"><span style="font-size:15px">🏠</span>Inicio</a>
+    <a class="nb" href="buscador_patentes.html"><span style="font-size:15px">🔍</span>Buscador de Patentes</a>
+    <a class="nb active" href="dashboard_vigilancia.html"><span style="font-size:15px">📊</span>Dashboard Reportes</a>
+    <a class="nb" href="tendencias.html"><span style="font-size:15px">📈</span>Tendencias</a>
+    <div class="sb-sec">Recursos</div>
+    <a class="nb" href="https://eriquechristensen.app.n8n.cloud/" target="_blank" rel="noopener"><span style="font-size:15px">⚙️</span>n8n Workflows</a>
+    <a class="nb" href="https://uao.edu.co" target="_blank" rel="noopener"><span style="font-size:15px">🎓</span>UAO Portal</a>
+  </nav>
+  <div class="sb-foot">Universidad Autónoma de Occidente<br>Cali, Colombia · 2026</div>
+</aside>
+
+<div class="main">
+  <header class="topbar">
+    <div class="tb-info">
+      <div class="tb-title">Dashboard de Reportes de Vigilancia</div>
+      <div class="tb-sub">Reportes PDF por vertical · Google Drive</div>
+    </div>
+    <div class="tb-actions">
+      <button class="btn" onclick="loadAll()">↺ Actualizar</button>
+    </div>
+  </header>
+
+  <main class="content">
+    <div class="status-bar">
+      <div class="sdot" id="sdot"></div>
+      <span id="status-txt">Iniciando carga desde Google Drive…</span>
+      <span class="status-time" id="status-time"></span>
+    </div>
+
+    <div class="vert-tabs" id="vert-tabs"></div>
+    <div id="panels"></div>
+  </main>
+</div>
+
+<script>
+const API_KEY = 'AIzaSyAknh1CwSRSYw53QaYRlytUCuPs_4FnYSs';
+
+const VERTICALES = [
+  {id:'energia',    nombre:'Energía',                    color:'#EF9F27', folder:'1CaxfIGcBWIqcjgEEm8ZxaYr1cNHZzNCP'},
+  {id:'bio',        nombre:'Bio',                         color:'#1D9E75', folder:'1nKBrT_d_hvFMDaAV6xj2WwRsCBMsEeQ_'},
+  {id:'salud',      nombre:'Salud',                       color:'#378ADD', folder:'1tIXwyKF73KZ6PIKX54skjjOsgndZc8TJ'},
+  {id:'ambiente',   nombre:'Ambiente',                    color:'#639922', folder:'1gYDjh9bKtkpnU5ltAHL267EnxBWvXUbu'},
+  {id:'creativas',  nombre:'Industrias Creativas',        color:'#7F77DD', folder:'1Aeqa5OPhf_1sATyD94OK4KUy2X-rglXe'},
+  {id:'comunicacion',nombre:'Comunicación',               color:'#D85A30', folder:null},
+];
+
+function fmtSize(bytes){
+  if(!bytes) return '—';
+  if(bytes<1024) return bytes+'B';
+  if(bytes<1024*1024) return (bytes/1024).toFixed(1)+'KB';
+  return (bytes/(1024*1024)).toFixed(1)+'MB';
+}
+
+function fmtDate(iso){
+  if(!iso) return '—';
+  const d = new Date(iso);
+  return d.toLocaleDateString('es-CO',{day:'2-digit',month:'short',year:'numeric'});
+}
+
+function setStatus(state, msg){
+  const dot = document.getElementById('sdot');
+  const txt = document.getElementById('status-txt');
+  dot.className = 'sdot ' + state;
+  txt.textContent = msg;
+  if(state === 'ok' || state === 'error'){
+    document.getElementById('status-time').textContent = 'Actualizado: ' + new Date().toLocaleTimeString('es-CO');
+  }
+}
+
+async function fetchFiles(folderId){
+  const q = encodeURIComponent("'" + folderId + "' in parents and trashed=false and mimeType='application/pdf'");
+  const url = 'https://www.googleapis.com/drive/v3/files?q=' + q + '&fields=files(id,name,size,modifiedTime,webViewLink,webContentLink)&orderBy=modifiedTime%20desc&key=' + API_KEY;
+  const r = await fetch(url);
+  if(!r.ok) throw new Error('Drive API ' + r.status);
+  const d = await r.json();
+  return d.files || [];
+}
+
+function renderSkeletons(panelId, count){
+  const p = document.getElementById('panel-'+panelId);
+  if(!p) return;
+  let html = '<div class="files-grid">';
+  for(let i=0;i<(count||3);i++){
+    html += '<div class="loading-card"><div class="skel" style="width:60%;height:14px"></div><div class="skel" style="width:80%"></div><div class="skel" style="width:40%"></div></div>';
+  }
+  html += '</div>';
+  p.querySelector('.panel-content').innerHTML = html;
+}
+
+function renderFiles(panelId, files, color){
+  const p = document.getElementById('panel-'+panelId);
+  if(!p) return;
+  const cnt = document.getElementById('cnt-'+panelId);
+  if(cnt) cnt.textContent = files.length;
+  const tab = document.getElementById('tab-'+panelId);
+  if(tab){
+    const c = tab.querySelector('.vtab-cnt');
+    if(c) c.textContent = files.length;
+  }
+
+  if(!files.length){
+    p.querySelector('.panel-content').innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">📂</div>
+        <div class="empty-title">Sin reportes aún</div>
+        <div class="empty-sub">El pipeline n8n aún no ha generado reportes para esta vertical,<br>o la carpeta de Google Drive está vacía.</div>
+      </div>`;
+    return;
+  }
+
+  let html = '<div class="files-grid">';
+  files.forEach(function(f){
+    html += '<div class="file-card">' +
+      '<div class="file-top">' +
+        '<div class="file-ico">📑</div>' +
+        '<div>' +
+          '<div class="file-name">' + (f.name||'Sin nombre') + '</div>' +
+          '<div class="file-meta">' + fmtDate(f.modifiedTime) + ' · ' + fmtSize(parseInt(f.size||0)) + '</div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="file-actions">' +
+        (f.webViewLink ? '<a class="btn btn-primary" href="' + f.webViewLink + '" target="_blank" rel="noopener" style="flex:1;justify-content:center;background:' + color + ';border-color:' + color + '">Ver PDF ↗</a>' : '') +
+        (f.webContentLink ? '<a class="btn" href="' + f.webContentLink + '" target="_blank" rel="noopener">Descargar</a>' : '') +
+      '</div>' +
+    '</div>';
+  });
+  html += '</div>';
+  p.querySelector('.panel-content').innerHTML = html;
+}
+
+function buildUI(){
+  const tabsEl = document.getElementById('vert-tabs');
+  const panelsEl = document.getElementById('panels');
+  let tabsHtml = '';
+  let panelsHtml = '';
+
+  VERTICALES.forEach(function(v, i){
+    tabsHtml += '<button class="vtab' + (i===0?' active':'') + '" id="tab-' + v.id + '" onclick="switchTab(\'' + v.id + '\')" style="' + (i===0?'background:'+v.color+';border-color:'+v.color:'') + '">' +
+      '<span class="vtab-dot" style="background:' + (i===0?'rgba(255,255,255,.7)':v.color) + '"></span>' +
+      v.nombre +
+      '<span class="vtab-cnt" id="cnt-' + v.id + '">…</span>' +
+    '</button>';
+
+    panelsHtml += '<div class="vert-panel' + (i===0?' active':'') + '" id="panel-' + v.id + '">' +
+      '<div class="panel-header">' +
+        '<div>' +
+          '<div class="panel-title">' + v.nombre + '</div>' +
+          '<div class="panel-sub">Reportes PDF generados automáticamente por n8n</div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="panel-content"></div>' +
+    '</div>';
+  });
+
+  tabsEl.innerHTML = tabsHtml;
+  panelsEl.innerHTML = panelsHtml;
+}
+
+function switchTab(id){
+  document.querySelectorAll('.vert-panel').forEach(function(p){ p.classList.remove('active'); });
+  document.querySelectorAll('.vtab').forEach(function(t){
+    t.classList.remove('active');
+    t.style.background = '';
+    t.style.borderColor = '';
+    t.style.color = '';
+    var dot = t.querySelector('.vtab-dot');
+    var vid = t.id.replace('tab-','');
+    var vert = VERTICALES.find(function(v){ return v.id===vid; });
+    if(dot && vert) dot.style.background = vert.color;
+  });
+  var panel = document.getElementById('panel-'+id);
+  var tab = document.getElementById('tab-'+id);
+  var vert = VERTICALES.find(function(v){ return v.id===id; });
+  if(panel) panel.classList.add('active');
+  if(tab && vert){
+    tab.classList.add('active');
+    tab.style.background = vert.color;
+    tab.style.borderColor = vert.color;
+    tab.style.color = '#fff';
+    var dot = tab.querySelector('.vtab-dot');
+    if(dot) dot.style.background = 'rgba(255,255,255,.7)';
+  }
+}
+
+async function loadAll(){
+  setStatus('loading', 'Cargando reportes desde Google Drive…');
+  var errors = 0;
+  var total = 0;
+
+  for(var i=0; i<VERTICALES.length; i++){
+    var v = VERTICALES[i];
+    renderSkeletons(v.id, 3);
+    if(!v.folder){
+      renderFiles(v.id, [], v.color);
+      var cntEl = document.getElementById('cnt-'+v.id);
+      if(cntEl) cntEl.textContent = '—';
+      continue;
+    }
+    try{
+      var files = await fetchFiles(v.folder);
+      total += files.length;
+      renderFiles(v.id, files, v.color);
+    } catch(e){
+      errors++;
+      var p = document.getElementById('panel-'+v.id);
+      if(p){
+        p.querySelector('.panel-content').innerHTML = '<div class="empty-state"><div class="empty-icon">⚠️</div><div class="empty-title">Error al cargar</div><div class="empty-sub">' + e.message + '<br><br>Verifica que la API Key tenga permiso para este referrer.</div></div>';
+      }
+      var cntEl2 = document.getElementById('cnt-'+v.id);
+      if(cntEl2) cntEl2.textContent = '!';
+    }
+  }
+
+  if(errors === 0){
+    setStatus('ok', 'Cargado correctamente · ' + total + ' reporte' + (total!==1?'s':'') + ' en total');
+  } else {
+    setStatus('error', errors + ' vertical' + (errors!==1?'es':'') + ' con error · verifica la API Key');
+  }
+}
+
+buildUI();
+loadAll();
+</script>
+</body>
+</html>

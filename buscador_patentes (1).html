@@ -1,0 +1,930 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Buscador de Patentes — UAO</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#F2F1EC;--surface:#fff;--surface2:#F7F6F2;
+  --border:rgba(0,0,0,.07);--border2:rgba(0,0,0,.13);
+  --text:#1A1A17;--text2:#5C5C54;--text3:#9C9C90;
+  --navy:#1A3A6B;--navy-l:#EBF0F9;
+  --green:#0F6E56;--green-l:#E1F5EE;
+  --font:'DM Sans',sans-serif;--mono:'DM Mono',monospace;
+  --r:12px;--rsm:8px;
+}
+body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;font-size:14px}
+
+/* SIDEBAR */
+.sb{position:fixed;top:0;left:0;width:218px;height:100vh;background:var(--navy);display:flex;flex-direction:column;z-index:100}
+.sb-logo{padding:22px 18px 18px;border-bottom:1px solid rgba(255,255,255,.09)}
+.sb-badge{width:34px;height:34px;background:rgba(255,255,255,.14);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;letter-spacing:.06em;margin-bottom:10px}
+.sb-title{font-size:13px;font-weight:600;color:#fff;line-height:1.3}
+.sb-sub{font-size:11px;color:rgba(255,255,255,.4);margin-top:2px}
+.sb-nav{padding:14px 10px;flex:1;overflow-y:auto}
+.sb-sec{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:rgba(255,255,255,.3);font-weight:600;padding:0 8px;margin:14px 0 5px}
+.sb-sec:first-child{margin-top:0}
+.nb{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:7px;cursor:pointer;color:rgba(255,255,255,.55);font-size:13px;font-weight:400;transition:all .15s;border:none;background:transparent;width:100%;text-align:left;font-family:var(--font)}
+.nb:hover{background:rgba(255,255,255,.07);color:rgba(255,255,255,.85)}
+.nb.active{background:rgba(255,255,255,.15);color:#fff;font-weight:500}
+.ndot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.ncnt{margin-left:auto;font-size:11px;font-family:var(--mono);background:rgba(255,255,255,.1);padding:1px 6px;border-radius:10px;color:rgba(255,255,255,.5)}
+.sb-foot{padding:12px 16px;border-top:1px solid rgba(255,255,255,.09);font-size:10px;color:rgba(255,255,255,.25);line-height:1.6}
+
+/* AUTH BAR */
+.auth-bar{padding:10px 14px;border-top:1px solid rgba(255,255,255,.09);display:flex;align-items:center;gap:8px}
+.auth-avatar{width:26px;height:26px;border-radius:50%;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:#fff;flex-shrink:0;overflow:hidden}
+.auth-avatar img{width:100%;height:100%;object-fit:cover}
+.auth-name{font-size:11px;color:rgba(255,255,255,.6);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.auth-btn{font-size:10px;padding:3px 8px;border-radius:5px;border:1px solid rgba(255,255,255,.2);background:transparent;color:rgba(255,255,255,.5);cursor:pointer;font-family:var(--font);transition:all .15s;white-space:nowrap}
+.auth-btn:hover{background:rgba(255,255,255,.1);color:#fff}
+.auth-btn.signin{background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.3)}
+.auth-btn.signin:hover{background:rgba(255,255,255,.25)}
+
+/* MAIN */
+.main{margin-left:218px;min-height:100vh;display:flex;flex-direction:column}
+.topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:0 26px;height:54px;display:flex;align-items:center;gap:14px;position:sticky;top:0;z-index:50}
+.tb-title{font-size:14px;font-weight:500;color:var(--text)}
+.tb-sub{font-size:11px;color:var(--text3);margin-top:1px}
+.sw{margin-left:auto;display:flex;align-items:center;gap:8px;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:6px 12px;width:240px}
+.sw input{border:none;background:transparent;font-family:var(--font);font-size:13px;color:var(--text);outline:none;width:100%}
+.sw input::placeholder{color:var(--text3)}
+.content{padding:24px 26px;flex:1}
+
+/* LOADING SCREEN */
+.loading-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60vh;gap:16px;text-align:center}
+.spinner{width:40px;height:40px;border:3px solid var(--border2);border-top-color:var(--navy);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-title{font-size:15px;font-weight:500;color:var(--text2)}
+.loading-sub{font-size:12px;color:var(--text3)}
+
+/* AUTH PROMPT */
+.auth-prompt{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:36px 32px;max-width:420px;margin:60px auto;text-align:center}
+.auth-prompt-icon{font-size:36px;margin-bottom:14px}
+.auth-prompt-title{font-size:16px;font-weight:600;color:var(--text);margin-bottom:8px}
+.auth-prompt-sub{font-size:13px;color:var(--text2);line-height:1.6;margin-bottom:22px}
+.drive-badge{display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:20px;background:var(--green-l);color:var(--green);font-size:12px;font-weight:500;margin-bottom:18px}
+
+/* SAVE STATUS */
+.save-toast{position:fixed;bottom:24px;right:24px;background:var(--text);color:#fff;border-radius:var(--rsm);padding:10px 16px;font-size:13px;font-weight:500;z-index:500;opacity:0;transform:translateY(8px);transition:all .25s;pointer-events:none;display:flex;align-items:center;gap:8px}
+.save-toast.show{opacity:1;transform:translateY(0)}
+.save-toast.error{background:#A32D2D}
+.save-toast.saving{background:var(--navy)}
+
+/* FORM CARD */
+.form-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:22px 24px;margin-bottom:20px}
+.form-title{font-size:13px;font-weight:600;color:var(--text);margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.fgroup{display:flex;flex-direction:column;gap:5px}
+.fgroup.full{grid-column:1/-1}
+.fgroup label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text3)}
+.fgroup input,.fgroup select,.fgroup textarea{font-family:var(--font);font-size:13px;color:var(--text);background:var(--surface2);border:1px solid var(--border);border-radius:var(--rsm);padding:8px 11px;outline:none;transition:border-color .15s}
+.fgroup input:focus,.fgroup select:focus,.fgroup textarea:focus{border-color:var(--navy)}
+.fgroup textarea{resize:vertical;min-height:72px;line-height:1.5}
+.fgroup select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%239C9C90' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;padding-right:28px}
+.form-actions{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;align-items:center}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:var(--rsm);font-family:var(--font);font-size:12px;font-weight:500;cursor:pointer;border:1px solid var(--border2);background:var(--surface);color:var(--text2);transition:all .15s;text-decoration:none;white-space:nowrap}
+.btn:hover{background:var(--bg);color:var(--text)}
+.btn-primary{background:var(--navy);color:#fff;border-color:var(--navy)}
+.btn-primary:hover{background:#142d56}
+.btn-danger{background:#fff;color:#A32D2D;border-color:#F09595}
+.btn-danger:hover{background:#FCEBEB}
+.tip{display:flex;align-items:flex-start;gap:8px;padding:9px 12px;background:var(--navy-l);border-radius:var(--rsm);font-size:12px;color:var(--navy);margin-top:14px;line-height:1.5}
+
+/* RESULTS */
+.results-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.results-lbl{font-size:13px;font-weight:600;color:var(--text)}
+.results-cnt{font-size:12px;color:var(--text3);font-family:var(--mono)}
+
+/* TABLE */
+.tw{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden}
+.tbl{width:100%;border-collapse:collapse}
+.tbl thead th{padding:9px 16px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);font-weight:600;background:var(--surface2);border-bottom:1px solid var(--border)}
+.tbl tbody tr{border-bottom:1px solid var(--border);transition:background .1s}
+.tbl tbody tr:hover{background:var(--surface2)}
+.tbl tbody tr:last-child{border-bottom:none}
+.tbl tbody tr.sel{background:var(--navy-l)}
+.tbl tbody td{padding:10px 16px;font-size:13px;color:var(--text2);vertical-align:middle}
+.fcell{display:flex;align-items:center;gap:10px}
+.fico{width:32px;height:32px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0}
+.fname{font-weight:500;color:var(--text);font-size:13px;max-width:260px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fmeta{font-size:11px;color:var(--text3);margin-top:1px;font-family:var(--mono)}
+.badge{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:500}
+.empty-cell{padding:48px;text-align:center;color:var(--text3);font-size:13px}
+.empty-icon{font-size:28px;margin-bottom:8px}
+
+/* PATENT MINI BUTTONS */
+.pat-btns{display:flex;gap:5px;flex-wrap:wrap}
+.pbtn{display:inline-flex;align-items:center;gap:4px;padding:4px 9px;border-radius:20px;font-size:11px;font-weight:500;text-decoration:none;border:1px solid;cursor:pointer;white-space:nowrap;transition:opacity .15s}
+.pbtn:hover{opacity:.75}
+
+/* OVERLAY + DRAWER */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.2);z-index:200;opacity:0;pointer-events:none;transition:opacity .2s}
+.overlay.open{opacity:1;pointer-events:all}
+.drawer{position:fixed;top:0;right:0;width:460px;height:100vh;background:var(--surface);border-left:1px solid var(--border);z-index:201;display:flex;flex-direction:column;transform:translateX(100%);transition:transform .25s cubic-bezier(.4,0,.2,1)}
+.drawer.open{transform:translateX(0)}
+.dw-head{padding:18px 22px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;gap:12px}
+.dw-ico{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.dw-title{font-size:13px;font-weight:600;color:var(--text);line-height:1.4;word-break:break-word}
+.dw-meta{font-size:11px;color:var(--text3);margin-top:3px}
+.dw-x{margin-left:auto;background:none;border:none;cursor:pointer;color:var(--text3);font-size:18px;padding:2px;flex-shrink:0;font-family:var(--font)}
+.dw-x:hover{color:var(--text)}
+.dw-body{flex:1;overflow-y:auto;padding:18px 22px}
+.dw-foot{padding:14px 22px;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:8px}
+.info-row{display:flex;justify-content:space-between;align-items:flex-start;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px;gap:12px}
+.info-row:last-child{border-bottom:none}
+.info-lbl{color:var(--text3);flex-shrink:0;font-size:12px}
+.info-val{color:var(--text);font-weight:500;text-align:right;word-break:break-word;font-size:12px}
+.sec-lbl{font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);font-weight:600;margin:0 0 8px}
+.sec-block{margin-bottom:20px}
+.patent-src{display:flex;flex-direction:column;gap:10px}
+.psrc-card{background:var(--surface2);border:1px solid var(--border);border-radius:var(--rsm);padding:14px 16px}
+.psrc-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:6px;gap:8px}
+.psrc-name{font-size:13px;font-weight:600;color:var(--text)}
+.psrc-sub{font-size:11px;color:var(--text3);line-height:1.4}
+.psrc-queries{margin-top:10px;display:flex;flex-direction:column;gap:6px}
+.qrow{background:var(--surface);border:1px solid var(--border);border-radius:var(--rsm);padding:8px 12px;display:flex;align-items:center;justify-content:space-between;gap:10px}
+.qtext{font-size:12px;color:var(--text2);font-family:var(--mono);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.qlabel{font-size:10px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.06em;flex-shrink:0}
+
+/* FUENTES VIEW */
+.fuentes-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+.fuente-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:18px 20px;display:flex;flex-direction:column;gap:10px;transition:border-color .15s}
+.fuente-card.disabled{opacity:.5}
+.fuente-top{display:flex;align-items:flex-start;gap:12px}
+.fuente-dot{width:12px;height:12px;border-radius:50%;flex-shrink:0;margin-top:3px}
+.fuente-name{font-size:14px;font-weight:600;color:var(--text)}
+.fuente-desc{font-size:12px;color:var(--text3);line-height:1.5;margin-top:2px}
+.fuente-url{font-size:11px;color:var(--navy);font-family:var(--mono);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:5px}
+.fuente-footer{display:flex;align-items:center;justify-content:space-between;padding-top:10px;border-top:1px solid var(--border)}
+.fuente-badge{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;padding:3px 8px;border-radius:20px}
+.fuente-badge.builtin{background:#EBF0F9;color:#1A3A6B}
+.fuente-badge.custom{background:#E1F5EE;color:#0F6E56}
+.fuente-actions{display:flex;gap:6px}
+.toggle-btn{font-size:11px;padding:4px 10px;border-radius:20px;cursor:pointer;border:1px solid;font-family:var(--font);font-weight:500;transition:all .15s}
+.toggle-on{background:#E1F5EE;color:#0F6E56;border-color:#9FE1CB}
+.toggle-on:hover{background:#9FE1CB}
+.toggle-off{background:#F1EFE8;color:#888780;border-color:#D3D1C7}
+.toggle-off:hover{background:#D3D1C7}
+.add-fuente-card{background:transparent;border:1.5px dashed var(--border2);border-radius:var(--r);padding:18px 20px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;cursor:pointer;transition:border-color .15s,background .15s;min-height:140px}
+.add-fuente-card:hover{border-color:var(--navy);background:var(--navy-l)}
+.add-fuente-icon{font-size:24px;color:var(--text3)}
+.add-fuente-label{font-size:13px;font-weight:500;color:var(--text3)}
+.add-fuente-sub{font-size:11px;color:var(--text3)}
+
+/* DRIVE SYNC STATUS */
+.sync-row{display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--surface2);border-radius:var(--rsm);font-size:12px;color:var(--text3);margin-bottom:16px}
+.sync-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.sync-dot.ok{background:#1D9E75}
+.sync-dot.saving{background:#EF9F27;animation:pulse .8s ease-in-out infinite}
+.sync-dot.err{background:#E24B4A}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.25);z-index:300;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s}
+.modal-overlay.open{opacity:1;pointer-events:all}
+.modal{background:var(--surface);border-radius:var(--r);border:1px solid var(--border);width:500px;max-width:96vw;max-height:92vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,.12)}
+.modal-head{padding:18px 22px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.modal-title{font-size:14px;font-weight:600;color:var(--text)}
+.modal-body{padding:20px 22px;display:flex;flex-direction:column;gap:12px}
+.modal-foot{padding:14px 22px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px}
+.url-preview{background:var(--surface2);border:1px solid var(--border);border-radius:var(--rsm);padding:8px 12px;font-size:11px;font-family:var(--mono);color:var(--text2);word-break:break-all;line-height:1.6;min-height:38px}
+.url-preview .ph{color:var(--text3);font-style:italic}
+.param-tags{display:flex;gap:6px;flex-wrap:wrap;margin-top:4px}
+.ptag{font-size:11px;padding:3px 9px;border-radius:20px;background:var(--navy-l);color:var(--navy);cursor:pointer;border:1px solid #c0d0e8;font-weight:500;transition:background .12s}
+.ptag:hover{background:#c0d0e8}
+
+::-webkit-scrollbar{width:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sb">
+  <div class="sb-logo">
+    <div class="sb-badge">UAO</div>
+    <div class="sb-title">Buscador de Patentes</div>
+    <div class="sb-sub">Vigilancia Tecnológica · 2026</div>
+  </div>
+  <nav class="sb-nav">
+    <div class="sb-sec">Sistema UAO</div>
+    <a class="nb" href="index.html" style="text-decoration:none">
+      <span style="font-size:15px">🏠</span>Inicio
+    </a>
+    <a class="nb" href="dashboard_vigilancia.html" style="text-decoration:none">
+      <span style="font-size:15px">📊</span>Dashboard Reportes
+    </a>
+    <a class="nb" href="tendencias.html" style="text-decoration:none">
+      <span style="font-size:15px">📈</span>Tendencias
+    </a>
+    <div class="sb-sec">Patentes</div>
+    <button class="nb active" id="nav-buscar" onclick="setView('buscar')">
+      <span style="font-size:15px">🔍</span>Buscador
+    </button>
+    <button class="nb" id="nav-registros" onclick="setView('registros')">
+      <span style="font-size:15px">📋</span>Todos los registros
+      <span class="ncnt" id="cnt-total">0</span>
+    </button>
+    <button class="nb" id="nav-fuentes" onclick="setView('fuentes')">
+      <span style="font-size:15px">🗂</span>Fuentes de patentes
+      <span class="ncnt" id="cnt-fuentes">—</span>
+    </button>
+  </nav>
+  <div id="auth-bar" class="auth-bar">
+    <div class="auth-avatar" id="auth-avatar">?</div>
+    <span class="auth-name" id="auth-name">No conectado</span>
+    <button class="auth-btn signin" id="auth-btn" onclick="handleAuthClick()">Conectar</button>
+  </div>
+  <div class="sb-foot">Universidad Autónoma de Occidente<br>Cali, Colombia · 2026</div>
+</aside>
+
+<!-- MAIN -->
+<div class="main">
+  <header class="topbar">
+    <div>
+      <div class="tb-title" id="tb-title">Buscador de tecnologías y patentes</div>
+      <div class="tb-sub" id="tb-sub">Espacenet (EPO) · The Lens · Registros UAO</div>
+    </div>
+    <div class="sw" id="sw-wrap">
+      <svg width="13" height="13" fill="none" stroke="#9C9C90" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      <input type="text" id="q-global" placeholder="Filtrar registros..." oninput="globalSearch()"/>
+    </div>
+  </header>
+  <main class="content" id="content">
+    <div class="loading-screen">
+      <div class="spinner"></div>
+      <div class="loading-title">Iniciando…</div>
+      <div class="loading-sub">Cargando Google Identity Services</div>
+    </div>
+  </main>
+</div>
+
+<!-- OVERLAY + DRAWER -->
+<div class="overlay" id="overlay" onclick="closeDrawer()"></div>
+<aside class="drawer" id="drawer"><div id="dw"></div></aside>
+
+<!-- TOAST -->
+<div class="save-toast" id="toast"></div>
+
+<!-- MODAL REGISTRO -->
+<div class="modal-overlay" id="modal-reg">
+  <div class="modal">
+    <div class="modal-head"><span class="modal-title">➕ Agregar registro</span><button class="dw-x" onclick="closeModalReg()">✕</button></div>
+    <div class="modal-body">
+      <div class="fgroup"><label>Nombre de la tecnología *</label><input type="text" id="m-nombre" placeholder="Ej: Panel solar de perovskita"/></div>
+      <div class="fgroup"><label>Organización / Empresa *</label><input type="text" id="m-org" placeholder="Ej: Universidad Nacional de Colombia"/></div>
+      <div class="fgroup"><label>País</label><input type="text" id="m-pais" placeholder="Ej: Colombia"/></div>
+      <div class="fgroup">
+        <label>Tipo de comercialización</label>
+        <select id="m-comercial">
+          <option value="">— Seleccionar —</option>
+          <option>Licenciamiento</option><option>Producto comercial</option>
+          <option>Software libre / Open source</option><option>Prototipo / Piloto</option>
+          <option>Joint venture</option><option>Spin-off</option>
+          <option>Patente</option><option>Servicio</option><option>Otro</option>
+        </select>
+      </div>
+      <div class="fgroup"><label>Evidencia observable</label><textarea id="m-evidencia" placeholder="Publicaciones, demos, patentes conocidas…"></textarea></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeModalReg()">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveRecord()">Guardar registro</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL FUENTE -->
+<div class="modal-overlay" id="modal-fuente">
+  <div class="modal">
+    <div class="modal-head"><span class="modal-title" id="mf-title">🗂 Nueva fuente de patentes</span><button class="dw-x" onclick="closeModalFuente()">✕</button></div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="fgroup"><label>Nombre de la fuente *</label><input type="text" id="mf-nombre" placeholder="Ej: Google Patents"/></div>
+        <div class="fgroup"><label>Color identificador</label><input type="color" id="mf-color" value="#7F77DD" style="height:38px;padding:4px 6px;cursor:pointer"/></div>
+        <div class="fgroup full"><label>Descripción</label><input type="text" id="mf-desc" placeholder="Ej: Base de patentes de Google con cobertura global"/></div>
+        <div class="fgroup full">
+          <label>URL base de búsqueda *</label>
+          <input type="text" id="mf-url" placeholder="Ej: https://patents.google.com/?q={nombre}+{org}" oninput="updatePreview()"/>
+          <small style="font-size:11px;color:var(--text3);margin-top:3px">Usa los marcadores para insertar datos dinámicos del registro.</small>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin-bottom:6px">Insertar marcador en la URL</div>
+        <div class="param-tags">
+          <span class="ptag" onclick="insertParam('{nombre}')">+ {nombre}</span>
+          <span class="ptag" onclick="insertParam('{org}')">+ {org}</span>
+          <span class="ptag" onclick="insertParam('{pais}')">+ {pais}</span>
+          <span class="ptag" onclick="insertParam('{nombre}+{org}')">+ {nombre}+{org}</span>
+          <span class="ptag" onclick="insertParam('{nombre}+{pais}')">+ {nombre}+{pais}</span>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin-bottom:6px">Vista previa</div>
+        <div class="url-preview" id="mf-preview"><span class="ph">Introduce la URL base para ver una vista previa…</span></div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeModalFuente()">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveFuente()">Guardar fuente</button>
+    </div>
+  </div>
+</div>
+
+<!-- Google Identity Services -->
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+
+<script>
+/* ═══════════════════════ CONFIG ═══════════════════════ */
+const CLIENT_ID  = '440210216612-ccdf9j4pljbbvst7h0dbjlg7v3pi7shj.apps.googleusercontent.com';
+const API_KEY    = 'AIzaSyAknh1CwSRSYw53QaYRlytUCuPs_4FnYSs';
+const FOLDER_ID  = '1tpoyy3NVHSR0H6y1lAjpS-CAGaegW2Kh';
+const SCOPES     = 'https://www.googleapis.com/auth/drive.file';
+const FILE_NAME  = 'uao_fuentes_patentes.json';
+
+/* ═══════════════════════ STATE ════════════════════════ */
+let tokenClient  = null;
+let accessToken  = null;
+let driveFileId  = null;   // ID del archivo JSON en Drive
+let syncStatus   = 'idle'; // idle | saving | ok | error
+let editFuenteId = null;
+let currentView  = 'buscar';
+let selRecord    = null;
+let nextId       = 8;
+let nextFuenteId = 1;
+
+const FUENTES_DEFAULT = [
+  {id:'espacenet', nombre:'Espacenet — EPO',  desc:'Base de patentes europea. Cubre EP, PCT y más de 100 oficinas nacionales.', color:'#378ADD', builtin:true,  activa:true, urlTemplate:'https://worldwide.espacenet.com/patent/search?q={nombre}+{org}', urlTemplate2:'https://worldwide.espacenet.com/patent/search?q={nombre}+{pais}'},
+  {id:'thelens',   nombre:'The Lens',          desc:'Agrega patentes de USPTO, EPO, WIPO, CNIPA y más de 100 oficinas. Acceso gratuito.', color:'#1D9E75', builtin:true, activa:true, urlTemplate:'https://www.lens.org/lens/search/patent/list?q={nombre}+{org}&p=0&n=10&s=_score&d=-', urlTemplate2:'https://www.lens.org/lens/search/patent/list?q={nombre}+{pais}&p=0&n=10&s=_score&d=-'},
+];
+
+let FUENTES = JSON.parse(JSON.stringify(FUENTES_DEFAULT));
+
+let DB = [
+  {id:1, nombre:'Panel solar de perovskita',         org:'Universidad Nacional de Colombia', pais:'Colombia',       comercial:'Prototipo / Piloto',          evidencia:'Publicación en Nature Energy 2025, prototipo funcional en laboratorio Bogotá.'},
+  {id:2, nombre:'Plataforma de telemedicina rural',   org:'MinSalud Colombia',               pais:'Colombia',       comercial:'Servicio',                    evidencia:'Piloto en 12 municipios del Pacífico colombiano. Convenio con UAO Cali.'},
+  {id:3, nombre:'Biorreactor de fermentación continua',org:'Grupo Nutresa',                 pais:'Colombia',       comercial:'Producto comercial',           evidencia:'Patente registrada en SIC Colombia 2024. Línea operativa en Medellín.'},
+  {id:4, nombre:'Sistema de captura de carbono directo',org:'Climeworks AG',                pais:'Suiza',          comercial:'Licenciamiento',               evidencia:'Planta Mammoth operativa Islandia 2024. Artículos en Science 2025.'},
+  {id:5, nombre:'Turbina eólica offshore flotante',   org:'Vestas Wind Systems',            pais:'Dinamarca',      comercial:'Producto comercial',           evidencia:'Instalaciones en Mar del Norte. Informe sostenibilidad 2025.'},
+  {id:6, nombre:'Kit CRISPR diagnóstico rápido',      org:'Sherlock Biosciences',           pais:'Estados Unidos', comercial:'Patente',                     evidencia:'FDA breakthrough device designation. Publicación Cell 2024.'},
+  {id:7, nombre:'App de economía circular urbana',    org:'Cicla Tech',                     pais:'España',         comercial:'Software libre / Open source', evidencia:'Repositorio GitHub activo. Mención ONU Hábitat 2025.'},
+];
+
+/* ═══════════════════════ AUTH ══════════════════════════ */
+function initGIS(){
+  if(typeof google === 'undefined'){
+    setTimeout(initGIS, 300);
+    return;
+  }
+  tokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: CLIENT_ID,
+    scope: SCOPES,
+    callback: async (resp) => {
+      if(resp.error){ showToast('Error de autenticación: '+resp.error, 'error'); return; }
+      accessToken = resp.access_token;
+      await fetchUserInfo();
+      await loadFuentesFromDrive();
+      render();
+    }
+  });
+  // Render initial state (no auth yet)
+  render();
+}
+
+async function fetchUserInfo(){
+  try{
+    const r = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+      headers:{'Authorization':'Bearer '+accessToken}
+    });
+    const u = await r.json();
+    const nameEl   = document.getElementById('auth-name');
+    const avatarEl = document.getElementById('auth-avatar');
+    const btnEl    = document.getElementById('auth-btn');
+    if(nameEl)   nameEl.textContent   = u.name || u.email || 'Conectado';
+    if(avatarEl){
+      if(u.picture){ avatarEl.innerHTML=`<img src="${u.picture}" alt=""/>`; }
+      else { avatarEl.textContent = (u.name||'U')[0].toUpperCase(); }
+    }
+    if(btnEl){ btnEl.textContent='Salir'; btnEl.classList.remove('signin'); }
+  }catch(e){ console.warn('userinfo error',e); }
+}
+
+function handleAuthClick(){
+  if(accessToken){
+    // Sign out
+    google.accounts.oauth2.revoke(accessToken, ()=>{});
+    accessToken = null;
+    driveFileId = null;
+    FUENTES = JSON.parse(JSON.stringify(FUENTES_DEFAULT));
+    const nameEl   = document.getElementById('auth-name');
+    const avatarEl = document.getElementById('auth-avatar');
+    const btnEl    = document.getElementById('auth-btn');
+    if(nameEl)   nameEl.textContent = 'No conectado';
+    if(avatarEl) avatarEl.textContent = '?';
+    if(btnEl){ btnEl.textContent='Conectar'; btnEl.classList.add('signin'); }
+    syncStatus = 'idle';
+    render();
+  } else {
+    tokenClient.requestAccessToken({prompt:'consent'});
+  }
+}
+
+/* ═══════════════════════ DRIVE I/O ═════════════════════ */
+async function loadFuentesFromDrive(){
+  showContent(`<div class="loading-screen"><div class="spinner"></div><div class="loading-title">Leyendo fuentes desde Drive…</div><div class="loading-sub">${FILE_NAME}</div></div>`);
+  try{
+    // Search for existing file in folder
+    const q = encodeURIComponent(`name='${FILE_NAME}' and '${FOLDER_ID}' in parents and trashed=false`);
+    const r = await driveReq(`https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id,name,modifiedTime)&key=${API_KEY}`);
+    const files = r.files || [];
+    if(files.length > 0){
+      driveFileId = files[0].id;
+      const content = await driveReq(`https://www.googleapis.com/drive/v3/files/${driveFileId}?alt=media`);
+      const custom = (content.fuentes || []).filter(f => !f.builtin);
+      // Merge: keep builtins from default, add custom from Drive
+      FUENTES = [
+        ...JSON.parse(JSON.stringify(FUENTES_DEFAULT)).map(f=>{
+          const saved = (content.fuentes||[]).find(x=>x.id===f.id);
+          return saved ? {...f, activa: saved.activa} : f;
+        }),
+        ...custom
+      ];
+      syncStatus = 'ok';
+      showToast('Fuentes cargadas desde Drive ✓', 'ok');
+    } else {
+      // No file yet — will be created on first save
+      driveFileId = null;
+      syncStatus = 'ok';
+      showToast('Archivo nuevo — se creará al guardar la primera fuente', 'ok');
+    }
+  } catch(e){
+    syncStatus = 'error';
+    showToast('Error al leer Drive: '+e.message, 'error');
+    console.error(e);
+  }
+}
+
+async function saveFuentesToDrive(){
+  if(!accessToken){ showToast('Conecta tu cuenta de Google primero', 'error'); return false; }
+  syncStatus = 'saving';
+  updateSyncUI();
+  const payload = JSON.stringify({ fuentes: FUENTES, updatedAt: new Date().toISOString() }, null, 2);
+  try{
+    if(driveFileId){
+      // Update existing file
+      await fetch(`https://www.googleapis.com/upload/drive/v3/files/${driveFileId}?uploadType=media`, {
+        method:'PATCH',
+        headers:{'Authorization':'Bearer '+accessToken,'Content-Type':'application/json'},
+        body: payload
+      });
+    } else {
+      // Create new file with metadata
+      const meta = JSON.stringify({ name: FILE_NAME, parents:[FOLDER_ID] });
+      const form = new FormData();
+      form.append('metadata', new Blob([meta],{type:'application/json'}));
+      form.append('file',     new Blob([payload],{type:'application/json'}));
+      const r = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id', {
+        method:'POST',
+        headers:{'Authorization':'Bearer '+accessToken},
+        body: form
+      });
+      const d = await r.json();
+      driveFileId = d.id;
+    }
+    syncStatus = 'ok';
+    updateSyncUI();
+    showToast('Fuentes guardadas en Drive ✓', 'ok');
+    return true;
+  } catch(e){
+    syncStatus = 'error';
+    updateSyncUI();
+    showToast('Error al guardar: '+e.message, 'error');
+    return false;
+  }
+}
+
+async function driveReq(url){
+  const headers = { 'Authorization': 'Bearer '+accessToken };
+  const r = await fetch(url, { headers });
+  if(!r.ok){ const e=await r.text(); throw new Error(`Drive API ${r.status}: ${e}`); }
+  const ct = r.headers.get('content-type')||'';
+  return ct.includes('application/json') ? r.json() : r.json().catch(()=>r.text());
+}
+
+/* ═══════════════════════ HELPERS ═══════════════════════ */
+function norm(s){ return (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,''); }
+function showContent(html){ document.getElementById('content').innerHTML = html; }
+
+function updateCounts(){
+  document.getElementById('cnt-total').textContent = DB.length;
+  const act = FUENTES.filter(f=>f.activa).length;
+  document.getElementById('cnt-fuentes').textContent = accessToken ? `${act}/${FUENTES.length}` : '—';
+}
+
+function updateSyncUI(){
+  // Update sync dot if fuentes view is active
+  const dot = document.getElementById('sync-dot');
+  const txt = document.getElementById('sync-txt');
+  if(!dot) return;
+  dot.className = 'sync-dot ' + syncStatus;
+  txt.textContent = syncStatus==='saving'?'Guardando en Drive…':syncStatus==='ok'?'Sincronizado con Drive':syncStatus==='error'?'Error de sincronización':'Sin sincronizar';
+}
+
+function buildURL(template, r){
+  return (template||'')
+    .replace(/\{nombre\}/g, encodeURIComponent(r.nombre||''))
+    .replace(/\{org\}/g,    encodeURIComponent(r.org||''))
+    .replace(/\{pais\}/g,   encodeURIComponent(r.pais||''));
+}
+
+function lightBg(hex){ const {r,g,b}=hexRGB(hex); return `rgba(${r},${g},${b},0.1)`; }
+function borderCol(hex){ const {r,g,b}=hexRGB(hex); return `rgba(${r},${g},${b},0.35)`; }
+function hexRGB(hex){ return {r:parseInt(hex.slice(1,3),16),g:parseInt(hex.slice(3,5),16),b:parseInt(hex.slice(5,7),16)}; }
+
+let toastTimer = null;
+function showToast(msg, type='ok'){
+  const t = document.getElementById('toast');
+  if(!t) return;
+  t.textContent = msg;
+  t.className = 'save-toast show' + (type==='error'?' error':type==='saving'?' saving':'');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>{ t.classList.remove('show'); }, 3200);
+}
+
+function getFiltered(){
+  const q = norm(document.getElementById('q-global').value);
+  return DB.filter(r=>{
+    if(!q) return true;
+    return norm(r.nombre).includes(q)||norm(r.org).includes(q)||norm(r.pais).includes(q)||norm(r.comercial).includes(q)||norm(r.evidencia).includes(q);
+  });
+}
+
+/* ═══════════════════════ VIEWS ═════════════════════════ */
+function setView(v){
+  currentView = v;
+  document.querySelectorAll('.nb').forEach(b=>b.classList.remove('active'));
+  document.getElementById('nav-'+v).classList.add('active');
+  const titles = {buscar:'Buscador de tecnologías y patentes', registros:'Todos los registros', fuentes:'Fuentes de patentes'};
+  const subs   = {buscar:'Espacenet (EPO) · The Lens · Registros UAO', registros:'Gestiona tus registros de tecnología', fuentes:'Configura y sincroniza con Google Drive'};
+  document.getElementById('tb-title').textContent = titles[v];
+  document.getElementById('tb-sub').textContent   = subs[v];
+  document.getElementById('sw-wrap').style.display = v==='fuentes'?'none':'flex';
+  render();
+}
+
+function globalSearch(){ render(); }
+
+function render(){
+  updateCounts();
+  if(currentView==='buscar')    renderSearch();
+  else if(currentView==='registros') renderTable();
+  else renderFuentes();
+}
+
+/* ═══════════════════════ BUSCADOR ══════════════════════ */
+function patBtnsHTML(r){
+  const activas = FUENTES.filter(f=>f.activa);
+  if(!activas.length) return '<span style="font-size:11px;color:var(--text3)">Sin fuentes activas</span>';
+  return activas.map(f=>`
+    <a class="pbtn" href="${buildURL(f.urlTemplate,r)}" target="_blank" rel="noopener" onclick="event.stopPropagation()"
+       style="background:${lightBg(f.color)};color:${f.color};border-color:${borderCol(f.color)}">
+      <svg width="9" height="9" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+      ${f.nombre.split('—')[0].trim().split(' ')[0]}
+    </a>`).join('');
+}
+
+function renderSearch(){
+  showContent(`
+    <div class="form-card">
+      <div class="form-title"><span style="font-size:16px">🔎</span> Criterios de búsqueda</div>
+      <div class="form-grid">
+        <div class="fgroup"><label>Nombre de la tecnología</label><input type="text" id="s-nombre" placeholder="Ej: energía solar, CRISPR…" oninput="runSearch()"/></div>
+        <div class="fgroup"><label>Organización / Empresa</label><input type="text" id="s-org" placeholder="Ej: Tesla, SENA, UAO…" oninput="runSearch()"/></div>
+        <div class="fgroup"><label>País</label><input type="text" id="s-pais" placeholder="Ej: Colombia, Alemania…" oninput="runSearch()"/></div>
+        <div class="fgroup">
+          <label>Tipo de comercialización</label>
+          <select id="s-comercial" onchange="runSearch()">
+            <option value="">— Todos —</option>
+            <option>Licenciamiento</option><option>Producto comercial</option>
+            <option>Software libre / Open source</option><option>Prototipo / Piloto</option>
+            <option>Joint venture</option><option>Spin-off</option>
+            <option>Patente</option><option>Servicio</option><option>Otro</option>
+          </select>
+        </div>
+        <div class="fgroup full"><label>Evidencia observable</label><textarea id="s-evidencia" placeholder="Palabras clave en la evidencia…" oninput="runSearch()"></textarea></div>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-primary" onclick="runSearch()">
+          <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          Buscar registros
+        </button>
+        <button class="btn" onclick="clearSearch()">Limpiar</button>
+        <button class="btn" onclick="openModalReg()" style="margin-left:auto">
+          <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Agregar registro
+        </button>
+      </div>
+      <div class="tip">
+        <span style="flex-shrink:0">ℹ️</span>
+        <span>Los botones de patentes se generan desde las fuentes activas. Administra las fuentes en <strong>Fuentes de patentes</strong>.</span>
+      </div>
+    </div>
+    <div id="search-results"></div>`);
+  runSearch();
+}
+
+function runSearch(){
+  const nombre   = norm(document.getElementById('s-nombre')?.value||'');
+  const org      = norm(document.getElementById('s-org')?.value||'');
+  const pais     = norm(document.getElementById('s-pais')?.value||'');
+  const comercial= document.getElementById('s-comercial')?.value||'';
+  const evidencia= norm(document.getElementById('s-evidencia')?.value||'');
+  const res = DB.filter(r=>{
+    if(nombre    && !norm(r.nombre).includes(nombre))      return false;
+    if(org       && !norm(r.org).includes(org))            return false;
+    if(pais      && !norm(r.pais).includes(pais))          return false;
+    if(comercial && r.comercial!==comercial)              return false;
+    if(evidencia && !norm(r.evidencia).includes(evidencia))return false;
+    return true;
+  });
+  const c = document.getElementById('search-results');
+  if(!c) return;
+  if(!res.length){ c.innerHTML=`<div class="tw"><div class="empty-cell"><div class="empty-icon">🔍</div>Sin resultados. Prueba con otros términos.</div></div>`; return; }
+  c.innerHTML=`
+    <div class="results-hdr"><span class="results-lbl">Resultados</span><span class="results-cnt">${res.length} registro${res.length!==1?'s':''}</span></div>
+    <div class="tw"><table class="tbl">
+      <thead><tr><th style="width:32px">#</th><th>Tecnología</th><th>País</th><th>Comercialización</th><th>Buscar patentes</th><th>Detalle</th></tr></thead>
+      <tbody>${res.map((r,i)=>`
+        <tr id="row-${r.id}" class="${selRecord&&selRecord.id===r.id?'sel':''}">
+          <td style="color:var(--text3);font-family:var(--mono);font-size:11px">${i+1}</td>
+          <td><div class="fcell"><div class="fico" style="background:#F1EFE8">🔬</div><div><div class="fname" title="${r.nombre}">${r.nombre}</div><div class="fmeta">${r.org}</div></div></div></td>
+          <td><span style="font-size:12px;color:var(--text2)">${r.pais||'—'}</span></td>
+          <td><span class="badge" style="background:#F7F6F2;color:#5C5C54;border:1px solid rgba(0,0,0,.1)">${r.comercial||'—'}</span></td>
+          <td><div class="pat-btns">${patBtnsHTML(r)}</div></td>
+          <td><button class="btn" style="font-size:11px;padding:4px 10px" onclick="event.stopPropagation();openDrawer(${r.id})">Ver →</button></td>
+        </tr>`).join('')}
+      </tbody>
+    </table></div>`;
+}
+
+function clearSearch(){
+  ['s-nombre','s-org','s-pais','s-evidencia'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  const s=document.getElementById('s-comercial');if(s)s.value='';
+  runSearch();
+}
+
+/* ═══════════════════════ TABLA ═════════════════════════ */
+function renderTable(){
+  const list = getFiltered();
+  showContent(`
+    <div class="results-hdr">
+      <span class="results-lbl">Todos los registros</span>
+      <div style="display:flex;gap:8px;align-items:center">
+        <span class="results-cnt">${list.length} registro${list.length!==1?'s':''}</span>
+        <button class="btn" onclick="openModalReg()">
+          <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Agregar
+        </button>
+      </div>
+    </div>
+    <div class="tw"><table class="tbl">
+      <thead><tr><th style="width:32px">#</th><th>Tecnología</th><th>País</th><th>Comercialización</th><th>Patentes</th><th>Acción</th></tr></thead>
+      <tbody>${!list.length
+        ?`<tr><td colspan="6"><div class="empty-cell"><div class="empty-icon">📋</div>Sin registros.</div></td></tr>`
+        :list.map((r,i)=>`
+        <tr id="row-${r.id}" class="${selRecord&&selRecord.id===r.id?'sel':''}">
+          <td style="color:var(--text3);font-family:var(--mono);font-size:11px">${i+1}</td>
+          <td><div class="fcell"><div class="fico" style="background:#F1EFE8">🔬</div><div><div class="fname" title="${r.nombre}">${r.nombre}</div><div class="fmeta">${r.org}</div></div></div></td>
+          <td><span style="font-size:12px;color:var(--text2)">${r.pais||'—'}</span></td>
+          <td><span style="font-size:12px;color:var(--text2)">${r.comercial||'—'}</span></td>
+          <td><div class="pat-btns">${patBtnsHTML(r)}</div></td>
+          <td><button class="btn" style="font-size:11px;padding:4px 10px" onclick="openDrawer(${r.id})">Ver →</button></td>
+        </tr>`).join('')}
+      </tbody>
+    </table></div>`);
+}
+
+/* ═══════════════════════ FUENTES VIEW ══════════════════ */
+function renderFuentes(){
+  const activas = FUENTES.filter(f=>f.activa).length;
+  const syncLabel = syncStatus==='saving'?'Guardando…':syncStatus==='ok'?'Sincronizado con Drive':syncStatus==='error'?'Error de sincronización':'Sin sincronizar';
+  const syncClass = syncStatus==='ok'?'ok':syncStatus==='saving'?'saving':syncStatus==='error'?'err':'';
+
+  showContent(`
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+      <div>
+        <div style="font-size:18px;font-weight:600;color:var(--text)">Fuentes de patentes</div>
+        <div style="font-size:12px;color:var(--text3);margin-top:2px">${activas} activa${activas!==1?'s':''} de ${FUENTES.length} configurada${FUENTES.length!==1?'s':''}</div>
+      </div>
+      <button class="btn btn-primary" onclick="openModalFuente()">
+        <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Nueva fuente
+      </button>
+    </div>
+
+    <div class="sync-row">
+      <div class="sync-dot ${syncClass}" id="sync-dot"></div>
+      <span id="sync-txt">${syncLabel}</span>
+      <span style="margin-left:4px;color:var(--text3)">·</span>
+      <span style="color:var(--text3)">${driveFileId ? FILE_NAME : 'Archivo pendiente de creación'}</span>
+      ${!accessToken?`<button class="btn" style="margin-left:auto;font-size:11px;padding:3px 10px" onclick="handleAuthClick()">Conectar Google Drive</button>`:''}
+    </div>
+
+    <div class="fuentes-grid">
+      ${FUENTES.map(f=>fuenteCardHTML(f)).join('')}
+      <div class="add-fuente-card" onclick="openModalFuente()">
+        <div class="add-fuente-icon">＋</div>
+        <div class="add-fuente-label">Agregar nueva fuente</div>
+        <div class="add-fuente-sub">Google Patents, WIPO, SIC Colombia…</div>
+      </div>
+    </div>`);
+}
+
+function fuenteCardHTML(f){
+  return `
+    <div class="fuente-card ${f.activa?'':'disabled'}">
+      <div class="fuente-top">
+        <div class="fuente-dot" style="background:${f.color}"></div>
+        <div style="flex:1;min-width:0">
+          <div class="fuente-name">${f.nombre}</div>
+          <div class="fuente-desc">${f.desc||''}</div>
+          <div class="fuente-url" title="${f.urlTemplate}">${f.urlTemplate||''}</div>
+        </div>
+      </div>
+      <div class="fuente-footer">
+        <span class="fuente-badge ${f.builtin?'builtin':'custom'}">${f.builtin?'Predeterminada':'Personalizada'}</span>
+        <div class="fuente-actions">
+          ${!f.builtin?`<button class="btn" style="font-size:11px;padding:4px 9px" onclick="editFuente('${f.id}')">Editar</button>`:''}
+          ${!f.builtin?`<button class="btn btn-danger" style="font-size:11px;padding:4px 9px" onclick="deleteFuente('${f.id}')">🗑</button>`:''}
+          <button class="toggle-btn ${f.activa?'toggle-on':'toggle-off'}" onclick="toggleFuente('${f.id}')">${f.activa?'✓ Activa':'Desactivada'}</button>
+        </div>
+      </div>
+    </div>`;
+}
+
+async function toggleFuente(id){
+  const f = FUENTES.find(x=>x.id===id);
+  if(f){ f.activa = !f.activa; }
+  await saveFuentesToDrive();
+  render();
+}
+
+async function deleteFuente(id){
+  if(!confirm('¿Eliminar esta fuente?')) return;
+  FUENTES = FUENTES.filter(f=>f.id!==id);
+  await saveFuentesToDrive();
+  render();
+}
+
+function editFuente(id){
+  const f = FUENTES.find(x=>x.id===id);
+  if(!f) return;
+  editFuenteId = id;
+  document.getElementById('mf-title').textContent = '✏️ Editar fuente';
+  document.getElementById('mf-nombre').value = f.nombre;
+  document.getElementById('mf-color').value  = f.color;
+  document.getElementById('mf-desc').value   = f.desc||'';
+  document.getElementById('mf-url').value    = f.urlTemplate||'';
+  updatePreview();
+  document.getElementById('modal-fuente').classList.add('open');
+}
+
+/* ═══════════════════════ MODAL FUENTE ══════════════════ */
+function openModalFuente(){
+  if(!accessToken){ showToast('Conecta tu Google Drive primero para guardar fuentes', 'error'); return; }
+  editFuenteId = null;
+  document.getElementById('mf-title').textContent = '🗂 Nueva fuente de patentes';
+  ['mf-nombre','mf-desc','mf-url'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('mf-color').value='#7F77DD';
+  document.getElementById('mf-preview').innerHTML='<span class="ph">Introduce la URL base para ver una vista previa…</span>';
+  document.getElementById('modal-fuente').classList.add('open');
+}
+function closeModalFuente(){ document.getElementById('modal-fuente').classList.remove('open'); }
+
+function insertParam(param){
+  const el = document.getElementById('mf-url');
+  const pos = el.selectionStart;
+  el.value = el.value.slice(0,pos)+param+el.value.slice(pos);
+  el.focus(); el.selectionStart = el.selectionEnd = pos+param.length;
+  updatePreview();
+}
+
+function updatePreview(){
+  const url = document.getElementById('mf-url').value.trim();
+  const p   = document.getElementById('mf-preview');
+  if(!url){ p.innerHTML='<span class="ph">Introduce la URL base para ver una vista previa…</span>'; return; }
+  p.textContent = buildURL(url, {nombre:'energía solar', org:'Universidad Nacional', pais:'Colombia'});
+}
+
+async function saveFuente(){
+  const nombre = document.getElementById('mf-nombre').value.trim();
+  const url    = document.getElementById('mf-url').value.trim();
+  if(!nombre){ alert('El nombre de la fuente es obligatorio.'); return; }
+  if(!url)   { alert('La URL base es obligatoria.'); return; }
+
+  if(editFuenteId){
+    const f = FUENTES.find(x=>x.id===editFuenteId);
+    if(f){ f.nombre=nombre; f.color=document.getElementById('mf-color').value; f.desc=document.getElementById('mf-desc').value.trim(); f.urlTemplate=url; }
+  } else {
+    FUENTES.push({ id:'custom_'+(nextFuenteId++), nombre, desc:document.getElementById('mf-desc').value.trim(), color:document.getElementById('mf-color').value, builtin:false, activa:true, urlTemplate:url });
+  }
+
+  closeModalFuente();
+  await saveFuentesToDrive();
+  render();
+}
+
+/* ═══════════════════════ DRAWER ════════════════════════ */
+function openDrawer(id){
+  const r = DB.find(x=>x.id===id);
+  if(!r) return;
+  selRecord = r;
+  const activas = FUENTES.filter(f=>f.activa);
+  const srcCards = activas.length ? activas.map(f=>`
+    <div class="psrc-card">
+      <div class="psrc-header">
+        <div>
+          <div class="psrc-name"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${f.color};margin-right:6px;vertical-align:middle"></span>${f.nombre}</div>
+          <div class="psrc-sub">${f.desc||''}</div>
+        </div>
+      </div>
+      <div class="psrc-queries">
+        <div class="qrow">
+          <span class="qlabel">Nombre + Org</span>
+          <span class="qtext">${r.nombre} ${r.org}</span>
+          <a class="btn btn-primary" style="font-size:11px;padding:4px 10px;flex-shrink:0;background:${f.color};border-color:${f.color}" href="${buildURL(f.urlTemplate,r)}" target="_blank" rel="noopener">Buscar ↗</a>
+        </div>
+        ${f.urlTemplate2?`
+        <div class="qrow">
+          <span class="qlabel">Nombre + País</span>
+          <span class="qtext">${r.nombre} ${r.pais||''}</span>
+          <a class="btn btn-primary" style="font-size:11px;padding:4px 10px;flex-shrink:0;background:${f.color};border-color:${f.color}" href="${buildURL(f.urlTemplate2,r)}" target="_blank" rel="noopener">Buscar ↗</a>
+        </div>`:''}
+      </div>
+    </div>`).join('')
+  : `<div style="text-align:center;padding:24px;color:var(--text3);font-size:13px">Sin fuentes activas. <button class="btn" style="font-size:12px" onclick="closeDrawer();setView('fuentes')">Gestionar fuentes →</button></div>`;
+
+  document.getElementById('dw').innerHTML=`
+    <div class="dw-head">
+      <div class="dw-ico" style="background:#F1EFE8">🔬</div>
+      <div style="flex:1;min-width:0"><div class="dw-title">${r.nombre}</div><div class="dw-meta">${r.org}</div></div>
+      <button class="dw-x" onclick="closeDrawer()">✕</button>
+    </div>
+    <div class="dw-body">
+      <div class="sec-block">
+        <div class="sec-lbl">Información del registro</div>
+        <div>
+          <div class="info-row"><span class="info-lbl">Tecnología</span><span class="info-val">${r.nombre}</span></div>
+          <div class="info-row"><span class="info-lbl">Organización</span><span class="info-val">${r.org}</span></div>
+          <div class="info-row"><span class="info-lbl">País</span><span class="info-val">${r.pais||'—'}</span></div>
+          <div class="info-row"><span class="info-lbl">Comercialización</span><span class="info-val">${r.comercial||'—'}</span></div>
+          <div class="info-row"><span class="info-lbl">Evidencia</span><span class="info-val" style="font-size:12px;line-height:1.5">${r.evidencia||'—'}</span></div>
+        </div>
+      </div>
+      <div class="sec-block">
+        <div class="sec-lbl">Búsqueda en fuentes activas (${activas.length})</div>
+        <div class="patent-src">${srcCards}</div>
+      </div>
+    </div>
+    <div class="dw-foot">
+      <button class="btn btn-danger" style="width:100%;justify-content:center" onclick="deleteRecord(${r.id})">🗑 Eliminar registro</button>
+    </div>`;
+  document.getElementById('drawer').classList.add('open');
+  document.getElementById('overlay').classList.add('open');
+  render();
+}
+
+function closeDrawer(){
+  document.getElementById('drawer').classList.remove('open');
+  document.getElementById('overlay').classList.remove('open');
+  selRecord = null; render();
+}
+
+/* ═══════════════════════ MODAL REGISTRO ════════════════ */
+function openModalReg(){
+  ['m-nombre','m-org','m-pais','m-evidencia'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('m-comercial').value='';
+  document.getElementById('modal-reg').classList.add('open');
+}
+function closeModalReg(){ document.getElementById('modal-reg').classList.remove('open'); }
+function saveRecord(){
+  const nombre = document.getElementById('m-nombre').value.trim();
+  if(!nombre){ alert('El nombre de la tecnología es obligatorio.'); return; }
+  DB.push({ id:nextId++, nombre, org:document.getElementById('m-org').value.trim()||'—', pais:document.getElementById('m-pais').value.trim()||'—', comercial:document.getElementById('m-comercial').value||'—', evidencia:document.getElementById('m-evidencia').value.trim()||'—' });
+  closeModalReg(); render();
+}
+function deleteRecord(id){
+  if(!confirm('¿Eliminar este registro?')) return;
+  DB = DB.filter(r=>r.id!==id);
+  closeDrawer();
+}
+
+/* ═══════════════════════ INIT ══════════════════════════ */
+window.addEventListener('load', () => { setTimeout(initGIS, 400); });
+</script>
+</body>
+</html>
